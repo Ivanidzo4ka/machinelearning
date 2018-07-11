@@ -1,33 +1,46 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
+﻿//------------------------------------------------------------------------------
+// <copyright company="Microsoft Corporation">
+//     Copyright (c) Microsoft Corporation. All rights reserved.
+// </copyright>
+//------------------------------------------------------------------------------
+
+using Float = System.Single;
 
 using System;
-using System.Drawing;
 using System.Text;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.CommandLine;
 using Microsoft.ML.Runtime.Data;
 using Microsoft.ML.Runtime.EntryPoints;
 using Microsoft.ML.Runtime.Internal.Internallearn;
+using Microsoft.ML.Runtime.Internal.OpenCV;
 using Microsoft.ML.Runtime.Internal.Utilities;
 using Microsoft.ML.Runtime.Model;
-using Microsoft.ML.Runtime.ImageAnalytics;
-using System.Drawing.Drawing2D;
 
-[assembly: LoadableClass(ImageResizer_BitmapTransform.Summary, typeof(ImageResizer_BitmapTransform), typeof(ImageResizer_BitmapTransform.Arguments), typeof(SignatureDataTransform),
-    ImageResizer_BitmapTransform.UserName, "ImageResizerTransform", "ImageResizer")]
+[assembly: LoadableClass(ImageResizerTransform.Summary, typeof(ImageResizerTransform), typeof(ImageResizerTransform.Arguments), typeof(SignatureDataTransform),
+    ImageResizerTransform.UserName, "ImageResizerTransform", "ImageResizer")]
 
-[assembly: LoadableClass(ImageResizer_BitmapTransform.Summary, typeof(ImageResizer_BitmapTransform), null, typeof(SignatureLoadDataTransform),
-    ImageResizer_BitmapTransform.UserName, ImageResizer_BitmapTransform.LoaderSignature)]
-
-
+[assembly: LoadableClass(ImageResizerTransform.Summary, typeof(ImageResizerTransform), null, typeof(SignatureLoadDataTransform),
+    ImageResizerTransform.UserName, ImageResizerTransform.LoaderSignature)]
 
 namespace Microsoft.ML.Runtime.Data
 {
+    using Conditional = System.Diagnostics.ConditionalAttribute;
+
     // REVIEW coeseanu: Rewrite as LambdaTransform to simplify.
-    public sealed class ImageResizer_BitmapTransform : OneToOneTransformBase
+    public sealed class ImageResizerTransform : OneToOneTransformBase
     {
+        public enum ResizingKind : byte
+        {
+            [TGUI(Label = "Isotropic with Padding")]
+            IsoPad = 0,
+
+            [TGUI(Label = "Isotropic with Cropping")]
+            IsoCrop = 1,
+
+            [TGUI(Label = "Anisotropic")]
+            Aniso = 2,
+        }
 
         public sealed class Column : OneToOneColumn
         {
@@ -37,6 +50,8 @@ namespace Microsoft.ML.Runtime.Data
             [Argument(ArgumentType.AtMostOnce, HelpText = "Height of the resized image", ShortName = "height")]
             public int? ImageHeight;
 
+            [Argument(ArgumentType.AtMostOnce, HelpText = "Resizing method", ShortName = "scale")]
+            public ResizingKind? Resizing;
 
             public static Column Parse(string str)
             {
@@ -51,7 +66,7 @@ namespace Microsoft.ML.Runtime.Data
             public bool TryUnparse(StringBuilder sb)
             {
                 Contracts.AssertValue(sb);
-                if (ImageWidth != null || ImageHeight != null)
+                if (ImageWidth != null || ImageHeight != null || Resizing != null)
                     return false;
                 return TryUnparseCore(sb);
             }
@@ -69,7 +84,7 @@ namespace Microsoft.ML.Runtime.Data
             public int ImageHeight;
 
             [Argument(ArgumentType.AtMostOnce, HelpText = "Resizing method", ShortName = "scale")]
-            public ISupportResizeImageFunctionCombinerFactory ResizeFunction = new ResizeWithPadding.Arguments();
+            public ResizingKind Resizing = ResizingKind.IsoCrop;
         }
 
         /// <summary>
@@ -79,16 +94,19 @@ namespace Microsoft.ML.Runtime.Data
         {
             public readonly int Width;
             public readonly int Height;
+            public readonly ResizingKind Scale;
             public readonly ColumnType Type;
 
-            public ColInfoEx(int width, int height)
+            public ColInfoEx(int width, int height, ResizingKind scale)
             {
                 Contracts.CheckUserArg(width > 0, nameof(Column.ImageWidth));
                 Contracts.CheckUserArg(height > 0, nameof(Column.ImageHeight));
+                Contracts.CheckUserArg(Enum.IsDefined(typeof(ResizingKind), scale), nameof(Column.Resizing));
 
                 Width = width;
                 Height = height;
-                Type = new ImageType_Bitmap(Height, Width);
+                Scale = scale;
+                Type = new ImageType(Height, Width);
             }
         }
 
@@ -101,16 +119,13 @@ namespace Microsoft.ML.Runtime.Data
         {
             return new VersionInfo(
                 modelSignature: "IMGSCALF",
-                //verWrittenCur: 0x00010001, // Initial
-                verWrittenCur: 0x00010002, // Switch to Bitmap
-                verReadableCur: 0x00010002,
-                verWeCanReadBack: 0x00010002,
+                verWrittenCur: 0x00010001, // Initial
+                verReadableCur: 0x00010001,
+                verWeCanReadBack: 0x00010001,
                 loaderSignature: LoaderSignature);
         }
 
         private const string RegistrationName = "ImageScaler";
-
-        public IResizeImageFunction Resize { get; }
 
         // This is parallel to Infos.
         private readonly ColInfoEx[] _exes;
@@ -118,26 +133,26 @@ namespace Microsoft.ML.Runtime.Data
         /// <summary>
         /// Public constructor corresponding to SignatureDataTransform.
         /// </summary>
-        public ImageResizer_BitmapTransform(IHostEnvironment env, Arguments args, IDataView input)
-            : base(env, RegistrationName, env.CheckRef(args, nameof(args)).Column, input, t => t is ImageType_Bitmap ? null : "Expected Image type")
+        public ImageResizerTransform(IHostEnvironment env, Arguments args, IDataView input)
+            : base(env, RegistrationName, env.CheckRef(args, nameof(args)).Column, input, t => t is ImageType ? null : "Expected Image type")
         {
             Host.AssertNonEmpty(Infos);
             Host.Assert(Infos.Length == Utils.Size(args.Column));
 
-            Resize = args.ResizeFunction.CreateComponent(env);
             _exes = new ColInfoEx[Infos.Length];
             for (int i = 0; i < _exes.Length; i++)
             {
                 var item = args.Column[i];
                 _exes[i] = new ColInfoEx(
                     item.ImageWidth ?? args.ImageWidth,
-                    item.ImageHeight ?? args.ImageHeight);
+                    item.ImageHeight ?? args.ImageHeight,
+                    item.Resizing ?? args.Resizing);
             }
             Metadata.Seal();
         }
 
-        private ImageResizer_BitmapTransform(IHost host, ModelLoadContext ctx, IDataView input)
-            : base(host, ctx, input, t => t is ImageType_Bitmap ? null : "Expected Image type")
+        private ImageResizerTransform(IHost host, ModelLoadContext ctx, IDataView input)
+            : base(host, ctx, input, t => t is ImageType ? null : "Expected Image type")
         {
             Host.AssertValue(ctx);
 
@@ -157,12 +172,14 @@ namespace Microsoft.ML.Runtime.Data
                 Host.CheckDecode(width > 0);
                 int height = ctx.Reader.ReadInt32();
                 Host.CheckDecode(height > 0);
-                _exes[i] = new ColInfoEx(width, height);
+                var scale = (ResizingKind)ctx.Reader.ReadByte();
+                Host.CheckDecode(Enum.IsDefined(typeof(ResizingKind), scale));
+                _exes[i] = new ColInfoEx(width, height, scale);
             }
             Metadata.Seal();
         }
 
-        public static ImageResizer_BitmapTransform Create(IHostEnvironment env, ModelLoadContext ctx, IDataView input)
+        public static ImageResizerTransform Create(IHostEnvironment env, ModelLoadContext ctx, IDataView input)
         {
             Contracts.CheckValue(env, nameof(env));
             var h = env.Register(RegistrationName);
@@ -176,8 +193,8 @@ namespace Microsoft.ML.Runtime.Data
                     // int: sizeof(Float)
                     // <remainder handled in ctors>
                     int cbFloat = ctx.Reader.ReadInt32();
-                    ch.CheckDecode(cbFloat == sizeof(Single));
-                    return new ImageResizer_BitmapTransform(h, ctx, input);
+                    ch.CheckDecode(cbFloat == sizeof(Float));
+                    return new ImageResizerTransform(h, ctx, input);
                 });
         }
 
@@ -194,7 +211,7 @@ namespace Microsoft.ML.Runtime.Data
             //   int: width
             //   int: height
             //   byte: scaling kind
-            ctx.Writer.Write(sizeof(Single));
+            ctx.Writer.Write(sizeof(Float));
             SaveBase(ctx);
 
             Host.Assert(_exes.Length == Infos.Length);
@@ -203,6 +220,8 @@ namespace Microsoft.ML.Runtime.Data
                 var ex = _exes[i];
                 ctx.Writer.Write(ex.Width);
                 ctx.Writer.Write(ex.Height);
+                Host.Assert((ResizingKind)(byte)ex.Scale == ex.Scale);
+                ctx.Writer.Write((byte)ex.Scale);
             }
         }
 
@@ -218,10 +237,10 @@ namespace Microsoft.ML.Runtime.Data
             Host.AssertValue(input);
             Host.Assert(0 <= iinfo && iinfo < Infos.Length);
 
-            var src = default(Bitmap);
-            var getSrc = GetSrcGetter<Bitmap>(input, iinfo);
+            var src = default(Image);
+            var getSrc = GetSrcGetter<Image>(input, iinfo);
             var ex = _exes[iinfo];
-            
+
             disposer =
                 () =>
                 {
@@ -232,18 +251,60 @@ namespace Microsoft.ML.Runtime.Data
                     }
                 };
 
-            ValueGetter<Bitmap> del =
-                (ref Bitmap dst) =>
+            ValueGetter<Image> del =
+                (ref Image dst) =>
                 {
                     if (dst != null)
                         dst.Dispose();
 
                     getSrc(ref src);
-                    if (src == null || src.Height <= 0 || src.Width <= 0)
+                    if (src == null || src.Columns <= 0 || src.Rows <= 0)
                         return;
-                    dst = Resize.Apply(src, ex.Width, ex.Height);
-                    dst.Save("D:\\image.jpg");
-                    Host.Assert(dst.Width == ex.Width && dst.Height == ex.Height);
+
+                    int x = 0;
+                    int y = 0;
+                    int w = ex.Width;
+                    int h = ex.Height;
+                    bool pad = ex.Scale == ResizingKind.IsoPad;
+                    if (ex.Scale == ResizingKind.IsoPad || ex.Scale == ResizingKind.IsoCrop)
+                    {
+                        long wh = (long)src.Columns * ex.Height;
+                        long hw = (long)src.Rows * ex.Width;
+
+                        if (pad == (wh > hw))
+                        {
+                            h = checked((int)(hw / src.Columns));
+                            y = (ex.Height - h) / 2;
+                        }
+                        else
+                        {
+                            w = checked((int)(wh / src.Rows));
+                            x = (ex.Width - w) / 2;
+                        }
+
+                        // If we're not padding, the rectangle should fill everything.
+                        Host.Assert(pad || x <= 0 && y <= 0 &&
+                            h >= ex.Height && w >= ex.Width);
+                    }
+
+                    // Draw the image.
+                    var resizedImage = OpenCVImports.Mat_ResizeSize(src.Handle, w, h);
+                    if (pad)
+                    {
+                        dst = new Image(
+                            OpenCVImports.Mat_Pad(
+                                resizedImage,
+                                x, y, ex.Width, ex.Height));
+                    }
+                    else
+                    {
+                        dst = new Image(
+                            OpenCVImports.Mat_ClipRect(
+                                resizedImage,
+                                -x, -y, ex.Width, ex.Height));
+                    }
+
+                    Host.Assert(dst.Columns == ex.Width && dst.Rows == ex.Height);
                 };
 
             return del;

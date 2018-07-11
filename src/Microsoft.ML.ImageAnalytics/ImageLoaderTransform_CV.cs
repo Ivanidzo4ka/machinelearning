@@ -1,29 +1,29 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
+﻿//------------------------------------------------------------------------------
+// <copyright company="Microsoft Corporation">
+//     Copyright (c) Microsoft Corporation. All rights reserved.
+// </copyright>
+//------------------------------------------------------------------------------
 
 using System;
-using System.Drawing;
 using System.Text;
-using Microsoft.ML.Runtime.ImageAnalytics;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.CommandLine;
 using Microsoft.ML.Runtime.Data;
 using Microsoft.ML.Runtime.EntryPoints;
+using Microsoft.ML.Runtime.Internal.OpenCV;
 using Microsoft.ML.Runtime.Internal.Utilities;
 using Microsoft.ML.Runtime.Model;
 
+[assembly: LoadableClass(ImageLoaderTransform.Summary, typeof(ImageLoaderTransform), typeof(ImageLoaderTransform.Arguments), typeof(SignatureDataTransform),
+    ImageLoaderTransform.UserName, "ImageLoaderTransform", "ImageLoader")]
 
-[assembly: LoadableClass(ImageLoader_BitmapTransform.Summary, typeof(ImageLoader_BitmapTransform), typeof(ImageLoader_BitmapTransform.Arguments), typeof(SignatureDataTransform),
-    ImageLoader_BitmapTransform.UserName, "ImageLoaderTransform", "ImageLoader")]
-
-[assembly: LoadableClass(ImageLoader_BitmapTransform.Summary, typeof(ImageLoader_BitmapTransform), null, typeof(SignatureLoadDataTransform),
-   ImageLoader_BitmapTransform.UserName, ImageLoader_BitmapTransform.LoaderSignature)]
+[assembly: LoadableClass(ImageLoaderTransform.Summary, typeof(ImageLoaderTransform), null, typeof(SignatureLoadDataTransform),
+   ImageLoaderTransform.UserName, ImageLoaderTransform.LoaderSignature)]
 
 namespace Microsoft.ML.Runtime.Data
 {
-    // REVIEW: Rewrite as LambdaTransform to simplify.
-    public sealed class ImageLoader_BitmapTransform : OneToOneTransformBase
+    // REVIEW coeseanu: Rewrite as LambdaTransform to simplify.
+    public sealed class ImageLoaderTransform : OneToOneTransformBase
     {
         public sealed class Column : OneToOneColumn
         {
@@ -65,41 +65,41 @@ namespace Microsoft.ML.Runtime.Data
                 loaderSignature: LoaderSignature);
         }
 
-        private readonly ImageType_Bitmap _type;
+        private readonly ImageType _type;
 
         private const string RegistrationName = "ImageLoader";
 
         /// <summary>
         /// Public constructor corresponding to SignatureDataTransform.
         /// </summary>
-        public ImageLoader_BitmapTransform(IHostEnvironment env, Arguments args, IDataView input)
+        public ImageLoaderTransform(IHostEnvironment env, Arguments args, IDataView input)
             : base(env, RegistrationName, env.CheckRef(args, nameof(args)).Column, input, TestIsText)
         {
             Host.AssertNonEmpty(Infos);
             Host.Assert(Infos.Length == Utils.Size(args.Column));
-            _type = new ImageType_Bitmap();
+            _type = new ImageType();
             Metadata.Seal();
         }
 
-        private ImageLoader_BitmapTransform(IHost host, ModelLoadContext ctx, IDataView input)
+        private ImageLoaderTransform(IHost host, ModelLoadContext ctx, IDataView input)
             : base(host, ctx, input, TestIsText)
         {
             Host.AssertValue(ctx);
 
             // *** Binary format ***
             // <base>
-            _type = new ImageType_Bitmap();
+            _type = new ImageType();
             Metadata.Seal();
         }
 
-        public static ImageLoader_BitmapTransform Create(IHostEnvironment env, ModelLoadContext ctx, IDataView input)
+        public static ImageLoaderTransform Create(IHostEnvironment env, ModelLoadContext ctx, IDataView input)
         {
             Contracts.CheckValue(env, nameof(env));
             var h = env.Register(RegistrationName);
             h.CheckValue(ctx, nameof(ctx));
             h.CheckValue(input, nameof(input));
             ctx.CheckAtModel(GetVersionInfo());
-            return h.Apply("Loading Model", ch => new ImageLoader_BitmapTransform(h, ctx, input));
+            return h.Apply("Loading Model", ch => new ImageLoaderTransform(h, ctx, input));
         }
 
         public override void Save(ModelSaveContext ctx)
@@ -128,8 +128,8 @@ namespace Microsoft.ML.Runtime.Data
 
             var getSrc = GetSrcGetter<DvText>(input, iinfo);
             DvText src = default(DvText);
-            ValueGetter<Bitmap> del =
-                (ref Bitmap dst) =>
+            ValueGetter<Image> del =
+                (ref Image dst) =>
                 {
                     if (dst != null)
                     {
@@ -144,7 +144,7 @@ namespace Microsoft.ML.Runtime.Data
                         // Catch exceptions and pass null through. Should also log failures...
                         try
                         {
-                            dst = new Bitmap(filename: src.ToString(), useIcm: false);
+                            dst = new Image(src.ToString());
                         }
                         catch (Exception e)
                         {

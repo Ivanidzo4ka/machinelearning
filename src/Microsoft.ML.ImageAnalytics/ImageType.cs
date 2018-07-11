@@ -7,11 +7,11 @@ using Microsoft.ML.Runtime.Data;
 
 namespace Microsoft.ML.Runtime.ImageAnalytics
 {
-    public sealed class ImageType: StructuredType
+    public sealed class ImageType_Bitmap: StructuredType
     {
         public readonly int Height;
         public readonly int Width;
-        public ImageType(int height, int width)
+        public ImageType_Bitmap(int height, int width)
            : base(typeof(Bitmap))
         {
             Contracts.CheckParam(height > 0, nameof(height));
@@ -21,8 +21,8 @@ namespace Microsoft.ML.Runtime.ImageAnalytics
             Width = width;
         }
 
-        public ImageType()
-            : base(typeof(Image))
+        public ImageType_Bitmap()
+            : base(typeof(System.Drawing.Image))
         {
         }
 
@@ -30,7 +30,7 @@ namespace Microsoft.ML.Runtime.ImageAnalytics
         {
             if (other == this)
                 return true;
-            var tmp = other as ImageType;
+            var tmp = other as ImageType_Bitmap;
             if (tmp == null)
                 return false;
             if (Height != tmp.Height)

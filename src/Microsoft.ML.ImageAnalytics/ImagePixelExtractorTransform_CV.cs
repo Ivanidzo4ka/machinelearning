@@ -1,9 +1,12 @@
-﻿// Licensed to the .NET Foundation under one or more agreements.
-// The .NET Foundation licenses this file to you under the MIT license.
-// See the LICENSE file in the project root for more information.
+﻿//------------------------------------------------------------------------------
+// <copyright company="Microsoft Corporation">
+//     Copyright (c) Microsoft Corporation. All rights reserved.
+// </copyright>
+//------------------------------------------------------------------------------
+
+using Float = System.Single;
 
 using System;
-using System.Drawing;
 using System.Text;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.CommandLine;
@@ -11,18 +14,17 @@ using Microsoft.ML.Runtime.Data;
 using Microsoft.ML.Runtime.EntryPoints;
 using Microsoft.ML.Runtime.Internal.Utilities;
 using Microsoft.ML.Runtime.Model;
-using Microsoft.ML.Runtime.ImageAnalytics;
 
-[assembly: LoadableClass(ImagePixelExtractor_BitmapTransform.Summary, typeof(ImagePixelExtractor_BitmapTransform), typeof(ImagePixelExtractor_BitmapTransform.Arguments), typeof(SignatureDataTransform),
-    ImagePixelExtractor_BitmapTransform.UserName, "ImagePixelExtractorTransform", "ImagePixelExtractor")]
+[assembly: LoadableClass(ImagePixelExtractorTransform.Summary, typeof(ImagePixelExtractorTransform), typeof(ImagePixelExtractorTransform.Arguments), typeof(SignatureDataTransform),
+    ImagePixelExtractorTransform.UserName, "ImagePixelExtractorTransform", "ImagePixelExtractor")]
 
-[assembly: LoadableClass(ImagePixelExtractor_BitmapTransform.Summary, typeof(ImagePixelExtractor_BitmapTransform), null, typeof(SignatureLoadDataTransform),
-    ImagePixelExtractor_BitmapTransform.UserName, ImagePixelExtractor_BitmapTransform.LoaderSignature)]
+[assembly: LoadableClass(ImagePixelExtractorTransform.Summary, typeof(ImagePixelExtractorTransform), null, typeof(SignatureLoadDataTransform),
+    ImagePixelExtractorTransform.UserName, ImagePixelExtractorTransform.LoaderSignature)]
 
 namespace Microsoft.ML.Runtime.Data
 {
     // REVIEW coeseanu: Rewrite as LambdaTransform to simplify.
-    public sealed class ImagePixelExtractor_BitmapTransform : OneToOneTransformBase
+    public sealed class ImagePixelExtractorTransform : OneToOneTransformBase
     {
         public class Column : OneToOneColumn
         {
@@ -46,10 +48,10 @@ namespace Microsoft.ML.Runtime.Data
             public bool? Convert;
 
             [Argument(ArgumentType.AtMostOnce, HelpText = "Offset (pre-scale)")]
-            public Single? Offset;
+            public Float? Offset;
 
             [Argument(ArgumentType.AtMostOnce, HelpText = "Scale factor")]
-            public Single? Scale;
+            public Float? Scale;
 
             public static Column Parse(string str)
             {
@@ -97,10 +99,10 @@ namespace Microsoft.ML.Runtime.Data
             public bool Convert = true;
 
             [Argument(ArgumentType.AtMostOnce, HelpText = "Offset (pre-scale)")]
-            public Single? Offset;
+            public Float? Offset;
 
             [Argument(ArgumentType.AtMostOnce, HelpText = "Scale factor")]
-            public Single? Scale;
+            public Float? Scale;
         }
 
         /// <summary>
@@ -123,8 +125,8 @@ namespace Microsoft.ML.Runtime.Data
             public readonly byte Planes;
 
             public readonly bool Convert;
-            public readonly Single Offset;
-            public readonly Single Scale;
+            public readonly Float Offset;
+            public readonly Float Scale;
             public readonly bool Interleave;
 
             public bool Alpha { get { return (Colors & ColorBits.Alpha) != 0; } }
@@ -239,9 +241,9 @@ namespace Microsoft.ML.Runtime.Data
         /// <summary>
         /// Public constructor corresponding to SignatureDataTransform.
         /// </summary>
-        public ImagePixelExtractor_BitmapTransform(IHostEnvironment env, Arguments args, IDataView input)
+        public ImagePixelExtractorTransform(IHostEnvironment env, Arguments args, IDataView input)
             : base(env, RegistrationName, Contracts.CheckRef(args, nameof(args)).Column, input,
-                t => t is ImageType_Bitmap ? null : "Expected Image type")
+                t => t is ImageType ? null : "Expected Image type")
         {
             Host.AssertNonEmpty(Infos);
             Host.Assert(Infos.Length == Utils.Size(args.Column));
@@ -256,8 +258,8 @@ namespace Microsoft.ML.Runtime.Data
             _types = ConstructTypes(true);
         }
 
-        private ImagePixelExtractor_BitmapTransform(IHost host, ModelLoadContext ctx, IDataView input)
-            : base(host, ctx, input, t => t is ImageType_Bitmap ? null : "Expected Image type")
+        private ImagePixelExtractorTransform(IHost host, ModelLoadContext ctx, IDataView input)
+            : base(host, ctx, input, t => t is ImageType ? null : "Expected Image type")
         {
             Host.AssertValue(ctx);
 
@@ -274,7 +276,7 @@ namespace Microsoft.ML.Runtime.Data
             _types = ConstructTypes(false);
         }
 
-        public static ImagePixelExtractor_BitmapTransform Create(IHostEnvironment env, ModelLoadContext ctx, IDataView input)
+        public static ImagePixelExtractorTransform Create(IHostEnvironment env, ModelLoadContext ctx, IDataView input)
         {
             Contracts.CheckValue(env, nameof(env));
             var h = env.Register(RegistrationName);
@@ -289,8 +291,8 @@ namespace Microsoft.ML.Runtime.Data
                     // int: sizeof(Float)
                     // <remainder handled in ctors>
                     int cbFloat = ctx.Reader.ReadInt32();
-                    ch.CheckDecode(cbFloat == sizeof(Single));
-                    return new ImagePixelExtractor_BitmapTransform(h, ctx, input);
+                    ch.CheckDecode(cbFloat == sizeof(Float));
+                    return new ImagePixelExtractorTransform(h, ctx, input);
                 });
         }
 
@@ -305,7 +307,7 @@ namespace Microsoft.ML.Runtime.Data
             // <base>
             // foreach added column
             //   ColInfoEx
-            ctx.Writer.Write(sizeof(Single));
+            ctx.Writer.Write(sizeof(Float));
             SaveBase(ctx);
 
             Host.Assert(_exes.Length == Infos.Length);
@@ -322,7 +324,7 @@ namespace Microsoft.ML.Runtime.Data
                 var ex = _exes[i];
                 Host.Assert(ex.Planes > 0);
 
-                var type = Source.Schema.GetColumnType(info.Source) as ImageType_Bitmap;
+                var type = Source.Schema.GetColumnType(info.Source) as ImageType;
                 Host.Assert(type != null);
                 if (type.Height <= 0 || type.Width <= 0)
                 {
@@ -361,11 +363,11 @@ namespace Microsoft.ML.Runtime.Data
             Host.Assert(0 <= iinfo && iinfo < Infos.Length);
 
             if (_exes[iinfo].Convert)
-                return GetGetterCore<Single>(input, iinfo, out disposer);
+                return GetGetterCore<Float>(input, iinfo, out disposer);
             return GetGetterCore<byte>(input, iinfo, out disposer);
         }
 
-        private ValueGetter<VBuffer<TValue>> GetGetterCore<TValue>(IRow input, int iinfo, out Action disposer)
+        private unsafe ValueGetter<VBuffer<TValue>> GetGetterCore<TValue>(IRow input, int iinfo, out Action disposer)
         {
             var type = _types[iinfo];
             Host.Assert(type.DimCount == 3);
@@ -381,8 +383,8 @@ namespace Microsoft.ML.Runtime.Data
             Host.Assert(size == planes * height * width);
             int cpix = height * width;
 
-            var getSrc = GetSrcGetter<Bitmap>(input, iinfo);
-            var src = default(Bitmap);
+            var getSrc = GetSrcGetter<Image>(input, iinfo);
+            var src = default(Image);
 
             disposer =
                 () =>
@@ -400,24 +402,24 @@ namespace Microsoft.ML.Runtime.Data
                     getSrc(ref src);
                     Contracts.AssertValueOrNull(src);
 
-                    if (src == null)
+                    if (src == null || src.RawData == null)
                     {
                         dst = new VBuffer<TValue>(size, 0, dst.Values, dst.Indices);
                         return;
                     }
 
-                    Host.Check(src.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-                    Host.Check(src.Height == height && src.Width == width);
+                    Host.Check(src.Type == Image.Types.CV8U);
+                    Host.Check(src.Rows == height && src.Columns == width);
 
                     var values = dst.Values;
                     if (Utils.Size(values) < size)
                         values = new TValue[size];
 
-                    Single offset = ex.Offset;
-                    Single scale = ex.Scale;
+                    Float offset = ex.Offset;
+                    Float scale = ex.Scale;
                     Host.Assert(scale != 0);
 
-                    var vf = values as Single[];
+                    var vf = values as Float[];
                     var vb = values as byte[];
                     Host.Assert(vf != null || vb != null);
                     bool needScale = offset != 0 || scale != 1;
@@ -438,27 +440,27 @@ namespace Microsoft.ML.Runtime.Data
                         {
                             for (int x = 0; x < w; x++)
                             {
-                                var pb = src.GetPixel(y, x);
+                                byte* pb = (byte*)src.GetAddress(y, x);
                                 if (vb != null)
                                 {
                                     if (a) { vb[idst++] = (byte)0; }
-                                    if (r) { vb[idst++] = pb.R; }
-                                    if (g) { vb[idst++] = pb.G; }
-                                    if (b) { vb[idst++] = pb.B; }
+                                    if (r) { vb[idst++] = pb[2]; }
+                                    if (g) { vb[idst++] = pb[1]; }
+                                    if (b) { vb[idst++] = pb[0]; }
                                 }
                                 else if (!needScale)
                                 {
                                     if (a) { vf[idst++] = 0.0f; }
-                                    if (r) { vf[idst++] = pb.R; }
-                                    if (g) { vf[idst++] = pb.G; }
-                                    if (b) { vf[idst++] = pb.B; }
+                                    if (r) { vf[idst++] = (Float)pb[2]; }
+                                    if (g) { vf[idst++] = (Float)pb[1]; }
+                                    if (b) { vf[idst++] = (Float)pb[0]; }
                                 }
                                 else
                                 {
                                     if (a) { vf[idst++] = 0.0f; }
-                                    if (r) { vf[idst++] = (pb.R - offset) * scale; }
-                                    if (g) { vf[idst++] = (pb.B - offset) * scale; }
-                                    if (b) { vf[idst++] = (pb.G - offset) * scale; }
+                                    if (r) { vf[idst++] = ((Float)pb[2] - offset) * scale; }
+                                    if (g) { vf[idst++] = ((Float)pb[1] - offset) * scale; }
+                                    if (b) { vf[idst++] = ((Float)pb[0] - offset) * scale; }
                                 }
                             }
                         }
@@ -474,7 +476,7 @@ namespace Microsoft.ML.Runtime.Data
                             // assuming that it is 0xFF.
                             if (vf != null)
                             {
-                                Single v = (0xFF - offset) * scale;
+                                Float v = (0xFF - offset) * scale;
                                 for (int i = 0; i < cpix; i++)
                                     vf[i] = v;
                             }
@@ -499,36 +501,36 @@ namespace Microsoft.ML.Runtime.Data
                             {
                                 for (int x = 0; x < w; x++, idstBase++)
                                 {
-                                    var pb = src.GetPixel(y, x);
+                                    byte* pb = (byte*)src.GetAddress(y, x);
                                     int idst = idstBase;
-                                    if (a) { vb[idst] = pb.A; idst += cpix; }
-                                    if (r) { vb[idst] = pb.R; idst += cpix; }
-                                    if (g) { vb[idst] = pb.G; idst += cpix; }
-                                    if (b) { vb[idst] = pb.B; idst += cpix; }
+                                    if (a) { vb[idst] = pb[3]; idst += cpix; }
+                                    if (r) { vb[idst] = pb[2]; idst += cpix; }
+                                    if (g) { vb[idst] = pb[1]; idst += cpix; }
+                                    if (b) { vb[idst] = pb[0]; idst += cpix; }
                                 }
                             }
                             else if (!needScale)
                             {
                                 for (int x = 0; x < w; x++, idstBase++)
                                 {
-                                    var pb = src.GetPixel(y, x);
+                                    byte* pb = (byte*)src.GetAddress(y, x);
                                     int idst = idstBase;
-                                    if (a) { vf[idst] = pb.A; idst += cpix; }
-                                    if (r) { vf[idst] = pb.R; idst += cpix; }
-                                    if (g) { vf[idst] = pb.G; idst += cpix; }
-                                    if (b) { vf[idst] = pb.B; idst += cpix; }
+                                    if (a) { vf[idst] = (Float)pb[3]; idst += cpix; }
+                                    if (r) { vf[idst] = (Float)pb[2]; idst += cpix; }
+                                    if (g) { vf[idst] = (Float)pb[1]; idst += cpix; }
+                                    if (b) { vf[idst] = (Float)pb[0]; idst += cpix; }
                                 }
                             }
                             else
                             {
                                 for (int x = 0; x < w; x++, idstBase++)
                                 {
-                                    var pb = src.GetPixel(y, x);
+                                    byte* pb = (byte*)src.GetAddress(y, x);
                                     int idst = idstBase;
-                                    if (a) { vf[idst] = (pb.A - offset) * scale; idst += cpix; }
-                                    if (r) { vf[idst] = (pb.R - offset) * scale; idst += cpix; }
-                                    if (g) { vf[idst] = (pb.G - offset) * scale; idst += cpix; }
-                                    if (b) { vf[idst] = (pb.B - offset) * scale; idst += cpix; }
+                                    if (a) { vf[idst] = ((Float)pb[3] - offset) * scale; idst += cpix; }
+                                    if (r) { vf[idst] = ((Float)pb[2] - offset) * scale; idst += cpix; }
+                                    if (g) { vf[idst] = ((Float)pb[1] - offset) * scale; idst += cpix; }
+                                    if (b) { vf[idst] = ((Float)pb[0] - offset) * scale; idst += cpix; }
                                 }
                             }
                         }

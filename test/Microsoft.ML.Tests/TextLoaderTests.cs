@@ -7,8 +7,11 @@ using Microsoft.ML.Data;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.Api;
 using Microsoft.ML.Runtime.Data;
+using Microsoft.ML.Runtime.ImageAnalytics;
+using Microsoft.ML.Runtime.Model;
 using Microsoft.ML.TestFramework;
 using System;
+using System.IO;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -26,7 +29,7 @@ namespace Microsoft.ML.EntryPoints.Tests
         public void ConstructorDoesntThrow()
         {
             Assert.NotNull(new Data.TextLoader("fakeFile.txt").CreateFrom<Input>());
-            Assert.NotNull(new Data.TextLoader("fakeFile.txt").CreateFrom<Input>(useHeader:true));
+            Assert.NotNull(new Data.TextLoader("fakeFile.txt").CreateFrom<Input>(useHeader: true));
             Assert.NotNull(new Data.TextLoader("fakeFile.txt").CreateFrom<Input>());
             Assert.NotNull(new Data.TextLoader("fakeFile.txt").CreateFrom<Input>(useHeader: false));
             Assert.NotNull(new Data.TextLoader("fakeFile.txt").CreateFrom<Input>(useHeader: false, supportSparse: false, trimWhitespace: false));
@@ -58,7 +61,7 @@ namespace Microsoft.ML.EntryPoints.Tests
         {
             string dataPath = GetDataPath("QuotingData.csv");
             var loader = new Data.TextLoader(dataPath).CreateFrom<QuoteInput>(useHeader: true, separator: ',', allowQuotedStrings: true, supportSparse: false);
-            
+
             using (var environment = new TlcEnvironment())
             {
                 Experiment experiment = environment.CreateExperiment();
@@ -218,7 +221,7 @@ namespace Microsoft.ML.EntryPoints.Tests
                     Text = new DvText();
                     TextGetter(ref Text);
                     Assert.Equal("There is no space at the end", Text.ToString());
-                    
+
                     Assert.False(cursor.MoveNext());
                 }
             }
@@ -227,7 +230,7 @@ namespace Microsoft.ML.EntryPoints.Tests
         [Fact]
         public void ThrowsExceptionWithPropertyName()
         {
-            Exception ex = Assert.Throws<InvalidOperationException>( () => new Data.TextLoader("fakefile.txt").CreateFrom<ModelWithoutColumnAttribute>() );
+            Exception ex = Assert.Throws<InvalidOperationException>(() => new Data.TextLoader("fakefile.txt").CreateFrom<ModelWithoutColumnAttribute>());
             Assert.StartsWith("String1 is missing ColumnAttribute", ex.Message);
         }
 
@@ -279,6 +282,107 @@ namespace Microsoft.ML.EntryPoints.Tests
         public class ModelWithoutColumnAttribute
         {
             public string String1;
+        }
+
+        [Fact]
+        public void TestImages_Bitmap()
+        {
+            using (var env = new TlcEnvironment(conc:1))
+            {
+                var data = env.CreateLoader("Text{col=ImagePath:TX:0}", new MultiFileSource(@"D:\images.csv"));
+                var images = new ImageLoader_BitmapTransform(env, new ImageLoader_BitmapTransform.Arguments()
+                {
+                    Column = new ImageLoader_BitmapTransform.Column[1]
+                    {
+                        new ImageLoader_BitmapTransform.Column() { Source=  "ImagePath", Name="ImageReal" }
+                    }
+                }, data);
+                var cropped = new ImageResizer_BitmapTransform(env, new ImageResizer_BitmapTransform.Arguments()
+                {
+                    Column = new ImageResizer_BitmapTransform.Column[1]{
+                        new ImageResizer_BitmapTransform.Column() {  Name= "ImageCropped", Source = "ImageReal", ImageHeight =100, ImageWidth = 100},
+                    },
+                    ResizeFunction = new ResizeWithPadding.Arguments() {}
+
+                }, images);
+
+                var pixels = new ImagePixelExtractor_BitmapTransform(env, new ImagePixelExtractor_BitmapTransform.Arguments()
+                {
+                    Column = new ImagePixelExtractor_BitmapTransform.Column[1]{
+                        new ImagePixelExtractor_BitmapTransform.Column() {  Source= "ImageCropped", Name = "ImagePixels"}
+                    }
+                }, cropped);
+                
+                using (var memoryStream = File.OpenWrite(@"D:\tlc\image_model.zip"))
+                {
+                    using (var ch = env.Start("Saving transform model"))
+                    {
+                        using (var rep = RepositoryWriter.CreateNew(memoryStream, ch))
+                        {
+                            ch.Trace("Saving root schema and transformations");
+                            TrainUtils.SaveDataPipe(env, rep, pixels);
+                            rep.Commit();
+                        }
+                        ch.Done();
+                    }
+                }
+
+                
+                pixels.Schema.TryGetColumnIndex("ImagePixels", out int cropColumn);
+                using (var cursor = pixels.GetRowCursor((x) => x == cropColumn))
+                {
+                    var pixelsGetter = cursor.GetGetter<VBuffer<float>>(cropColumn);
+                    VBuffer<float> pixelcolumn = new VBuffer<float>();
+                    while (cursor.MoveNext())
+                    {
+                        pixelsGetter(ref pixelcolumn);
+                    }
+                }
+
+            }
+        }
+
+        [Fact]
+        public void TestImages()
+        {
+            using (var env = new TlcEnvironment())
+            {
+                var data = env.CreateLoader("Text{col=ImagePath:TX:0}", new MultiFileSource(@"D:\images.csv"));
+                var images = new ImageLoaderTransform(env, new ImageLoaderTransform.Arguments()
+                {
+                    Column = new ImageLoaderTransform.Column[1]
+                    {
+                        new ImageLoaderTransform.Column() { Source=  "ImagePath", Name="ImageReal" }
+                    }
+                }, data);
+                var cropped = new ImageResizerTransform(env, new ImageResizerTransform.Arguments()
+                {
+                    Column = new ImageResizerTransform.Column[1]{
+                        new ImageResizerTransform.Column() {  Name= "ImageCropped", Source = "ImageReal", ImageHeight =100, ImageWidth = 100, Resizing = ImageResizerTransform.ResizingKind.IsoPad}
+                    }
+                }, images);
+
+                var pixels = new ImagePixelExtractorTransform(env, new ImagePixelExtractorTransform.Arguments()
+                {
+                    Column = new ImagePixelExtractorTransform.Column[1]{
+                        new ImagePixelExtractorTransform.Column() {  Source= "ImageCropped", Name = "ImagePixels"}
+                    }
+                }, cropped);
+
+
+                pixels.Schema.TryGetColumnIndex("ImagePixels", out int cropColumn);
+                using (var cursor = pixels.GetRowCursor((x) => x == cropColumn))
+                {
+                    var pixelsGetter = cursor.GetGetter<VBuffer<float>>(cropColumn);
+                    VBuffer<float> pixelcolumn = new VBuffer<float>();
+                    while (cursor.MoveNext())
+                    {
+                        pixelsGetter(ref pixelcolumn);
+                    }
+                }
+
+            }
+
         }
     }
 }
