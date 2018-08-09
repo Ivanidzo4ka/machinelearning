@@ -11,16 +11,16 @@ using Microsoft.ML.Runtime.EntryPoints;
 using Microsoft.ML.Runtime.Internal.Internallearn;
 using Microsoft.ML.Runtime.LightGBM;
 
-[assembly: LoadableClass(typeof(LightGbmArgumentsBase.TreeBooster), typeof(LightGbmArgumentsBase.TreeBooster.Arguments),
-    typeof(SignatureLightGBMBooster), LightGbmArgumentsBase.TreeBooster.FriendlyName, LightGbmArgumentsBase.TreeBooster.Name)]
-[assembly: LoadableClass(typeof(LightGbmArgumentsBase.DartBooster), typeof(LightGbmArgumentsBase.DartBooster.Arguments),
-    typeof(SignatureLightGBMBooster), LightGbmArgumentsBase.DartBooster.FriendlyName, LightGbmArgumentsBase.DartBooster.Name)]
-[assembly: LoadableClass(typeof(LightGbmArgumentsBase.GossBooster), typeof(LightGbmArgumentsBase.GossBooster.Arguments),
-    typeof(SignatureLightGBMBooster), LightGbmArgumentsBase.GossBooster.FriendlyName, LightGbmArgumentsBase.GossBooster.Name)]
+[assembly: LoadableClass(typeof(ArgumentsBase.TreeBooster), typeof(ArgumentsBase.TreeBooster.Arguments),
+    typeof(SignatureLightGBMBooster), ArgumentsBase.TreeBooster.FriendlyName, ArgumentsBase.TreeBooster.Name)]
+[assembly: LoadableClass(typeof(ArgumentsBase.DartBooster), typeof(ArgumentsBase.DartBooster.Arguments),
+    typeof(SignatureLightGBMBooster), ArgumentsBase.DartBooster.FriendlyName, ArgumentsBase.DartBooster.Name)]
+[assembly: LoadableClass(typeof(ArgumentsBase.GossBooster), typeof(ArgumentsBase.GossBooster.Arguments),
+    typeof(SignatureLightGBMBooster), ArgumentsBase.GossBooster.FriendlyName, ArgumentsBase.GossBooster.Name)]
 
-[assembly: EntryPointModule(typeof(LightGbmArgumentsBase.TreeBooster.Arguments))]
-[assembly: EntryPointModule(typeof(LightGbmArgumentsBase.DartBooster.Arguments))]
-[assembly: EntryPointModule(typeof(LightGbmArgumentsBase.GossBooster.Arguments))]
+[assembly: EntryPointModule(typeof(ArgumentsBase.TreeBooster.Arguments))]
+[assembly: EntryPointModule(typeof(ArgumentsBase.DartBooster.Arguments))]
+[assembly: EntryPointModule(typeof(ArgumentsBase.GossBooster.Arguments))]
 
 namespace Microsoft.ML.Runtime.LightGBM
 {
@@ -40,7 +40,7 @@ namespace Microsoft.ML.Runtime.LightGBM
     /// Parameters names comes from LightGBM library.
     /// See https://github.com/Microsoft/LightGBM/blob/master/docs/Parameters.rst.
     /// </summary>
-    public abstract class LightGbmArgumentsBase : LearnerInputBaseWithGroupId
+    public abstract class ArgumentsBase : LearnerInputBaseWithGroupId
     {
         public abstract class BoosterParameter<TArgs> : IBoosterParameter
             where TArgs : class, new()

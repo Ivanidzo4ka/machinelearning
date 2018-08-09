@@ -13,6 +13,10 @@ using Microsoft.ML.Runtime.Model;
 
 [assembly: EntryPointModule(typeof(LightGbmBinaryTrainer.Arguments))]
 
+[assembly: LoadableClass(LightGbmBinaryTrainer.Summary, typeof(LightGbmBinaryTrainer), typeof(LightGbmBinaryTrainer.Arguments),
+    new[] { typeof(SignatureBinaryClassifierTrainer), typeof(SignatureTrainer), typeof(SignatureTreeEnsembleTrainer) },
+    LightGbmBinaryTrainer.UserName, LightGbmBinaryTrainer.LoadNameValue, LightGbmBinaryTrainer.ShortName, DocName = "trainer/LightGBM.md")]
+
 [assembly: LoadableClass(typeof(IPredictorProducing<float>), typeof(LightGbmBinaryPredictor), null, typeof(SignatureLoadModel),
     "LightGBM Binary Executor",
     LightGbmBinaryPredictor.LoaderSignature)]
@@ -83,7 +87,7 @@ namespace Microsoft.ML.Runtime.LightGBM
         internal const string LoadNameValue = "LightGBMBinary";
         internal const string ShortName = "LightGBM";
         internal const string Summary = "Train a LightGBM binary classification model.";
-        public sealed class Arguments : LightGbmArgumentsBase, IBinaryTrainerFactory
+        public sealed class Arguments : ArgumentsBase, IBinaryTrainerFactory
         {
             public ITrainer<IPredictorProducing<float>> CreateComponent(IHostEnvironment env) => new LightGbmBinaryTrainer(env, this);
         }

@@ -31,7 +31,7 @@ namespace Microsoft.ML.Runtime.LightGBM
         private int _tlcNumClass;
         public override PredictionKind PredictionKind => PredictionKind.MultiClassClassification;
 
-        public sealed class Arguments : LightGbmArgumentsBase, IMulticlassTrainerFactory
+        public sealed class Arguments : ArgumentsBase, IMulticlassTrainerFactory
         {
             public ITrainer<IPredictorProducing<VBuffer<float>>> CreateComponent(IHostEnvironment env) => new LightGbmMulticlassTrainer(env, this);
         }

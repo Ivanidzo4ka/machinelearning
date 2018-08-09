@@ -37,7 +37,7 @@ namespace Microsoft.ML.Runtime.LightGBM
             public bool[] IsCategoricalFeature;
         }
 
-        private protected readonly LightGbmArgumentsBase Args;
+        private protected readonly ArgumentsBase Args;
 
         /// <summary>
         /// Stores argumments as objects to convert them to invariant string type in the end so that
@@ -54,7 +54,7 @@ namespace Microsoft.ML.Runtime.LightGBM
         private static readonly TrainerInfo _info = new TrainerInfo(normalization: false, caching: false, supportValid: true);
         public override TrainerInfo Info => _info;
 
-        private protected LightGbmTrainerBase(IHostEnvironment env, LightGbmArgumentsBase args, string name)
+        private protected LightGbmTrainerBase(IHostEnvironment env, ArgumentsBase args, string name)
             : base(env, name)
         {
             Host.CheckValue(args, nameof(args));

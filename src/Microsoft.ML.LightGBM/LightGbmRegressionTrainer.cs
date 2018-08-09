@@ -81,7 +81,7 @@ namespace Microsoft.ML.Runtime.LightGBM
 
         public override PredictionKind PredictionKind => PredictionKind.Regression;
 
-        public sealed class Arguments : LightGbmArgumentsBase, IRegressionTrainerFactory
+        public sealed class Arguments : ArgumentsBase, IRegressionTrainerFactory
         {
             public ITrainer<IPredictorProducing<float>> CreateComponent(IHostEnvironment env) => new LightGbmRegressorTrainer(env, this);
         }

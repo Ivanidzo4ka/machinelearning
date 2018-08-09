@@ -77,7 +77,7 @@ namespace Microsoft.ML.Runtime.LightGBM
 
         public override PredictionKind PredictionKind => PredictionKind.Ranking;
 
-        public sealed class Arguments : LightGbmArgumentsBase, IRankingTrainerFactory
+        public sealed class Arguments : ArgumentsBase, IRankingTrainerFactory
         {
             public ITrainer<IPredictorProducing<float>> CreateComponent(IHostEnvironment env) => new LightGbmRankingTrainer(env, this);
         }

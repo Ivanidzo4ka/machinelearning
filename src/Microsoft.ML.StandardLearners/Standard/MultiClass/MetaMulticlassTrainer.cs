@@ -24,7 +24,7 @@ namespace Microsoft.ML.Runtime.Learners
         {
             [Argument(ArgumentType.Multiple, HelpText = "Base predictor", ShortName = "p", SortOrder = 1, SignatureType = typeof(SignatureBinaryClassifierTrainer))]
             [TGUI(Label = "Predictor Type", Description = "Type of underlying binary predictor")]
-            public IBinaryTrainerFactory PredictorType = new LinearSvm.Arguments();
+            public IComponentFactory<TScalarTrainer> PredictorType = new LinearSvm.Arguments();
 
             [Argument(ArgumentType.Multiple, HelpText = "Output calibrator", ShortName = "cali", NullName = "<None>", SignatureType = typeof(SignatureCalibrator))]
             public IComponentFactory<ICalibratorTrainer> Calibrator = new PlattCalibratorTrainerFactory();
@@ -48,6 +48,7 @@ namespace Microsoft.ML.Runtime.Learners
             Host.CheckValue(args, nameof(args));
             Args = args;
             // Create the first trainer so errors in the args surface early.
+
             _trainer = CreateTrainer();
             // Regarding caching, no matter what the internal predictor, we're performing many passes
             // simply by virtue of this being a meta-trainer, so we will still cache.
@@ -56,6 +57,7 @@ namespace Microsoft.ML.Runtime.Learners
 
         private TScalarTrainer CreateTrainer()
         {
+            Host.CheckValue(Args.PredictorType, nameof(Args.PredictorType));
             return Args.PredictorType.CreateComponent(Host);
         }
 
