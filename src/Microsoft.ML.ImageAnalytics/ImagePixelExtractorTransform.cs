@@ -2,11 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Text;
 using Microsoft.ML.Core.Data;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.CommandLine;
@@ -17,6 +12,12 @@ using Microsoft.ML.Runtime.Internal.Utilities;
 using Microsoft.ML.Runtime.Model;
 using Microsoft.ML.StaticPipe;
 using Microsoft.ML.StaticPipe.Runtime;
+using Microsoft.ML.Transforms.ImageAnalytics;
+using System;
+using System.Collections.Generic;
+using System.Drawing;
+using System.Linq;
+using System.Text;
 
 [assembly: LoadableClass(ImagePixelExtractorTransform.Summary, typeof(IDataTransform), typeof(ImagePixelExtractorTransform), typeof(ImagePixelExtractorTransform.Arguments), typeof(SignatureDataTransform),
     ImagePixelExtractorTransform.UserName, "ImagePixelExtractorTransform", "ImagePixelExtractor")]
@@ -30,7 +31,7 @@ using Microsoft.ML.StaticPipe.Runtime;
 [assembly: LoadableClass(typeof(IRowMapper), typeof(ImagePixelExtractorTransform), null, typeof(SignatureLoadRowMapper),
     ImagePixelExtractorTransform.UserName, ImagePixelExtractorTransform.LoaderSignature)]
 
-namespace Microsoft.ML.Runtime.ImageAnalytics
+namespace Microsoft.ML.Transforms.ImageAnalytics
 {
     /// <summary>
     /// Transform which takes one or many columns of <see cref="ImageType"/> and convert them into vector representation.

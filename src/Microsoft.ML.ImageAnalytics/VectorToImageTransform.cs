@@ -2,16 +2,16 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Drawing;
-using System.Text;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.CommandLine;
 using Microsoft.ML.Runtime.Data;
 using Microsoft.ML.Runtime.EntryPoints;
-using Microsoft.ML.Runtime.ImageAnalytics;
 using Microsoft.ML.Runtime.Internal.Utilities;
 using Microsoft.ML.Runtime.Model;
+using Microsoft.ML.Transforms.ImageAnalytics;
+using System;
+using System.Drawing;
+using System.Text;
 
 [assembly: LoadableClass(VectorToImageTransform.Summary, typeof(VectorToImageTransform), typeof(VectorToImageTransform.Arguments),
     typeof(SignatureDataTransform), VectorToImageTransform.UserName, "VectorToImageTransform", "VectorToImage")]
@@ -19,7 +19,7 @@ using Microsoft.ML.Runtime.Model;
 [assembly: LoadableClass(VectorToImageTransform.Summary, typeof(VectorToImageTransform), null, typeof(SignatureLoadDataTransform),
     VectorToImageTransform.UserName, VectorToImageTransform.LoaderSignature)]
 
-namespace Microsoft.ML.Runtime.ImageAnalytics
+namespace Microsoft.ML.Transforms.ImageAnalytics
 {
     // REVIEW: Rewrite as LambdaTransform to simplify.
 

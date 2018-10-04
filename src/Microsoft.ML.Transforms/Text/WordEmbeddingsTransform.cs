@@ -2,11 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
 using Microsoft.ML.Core.Data;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.CommandLine;
@@ -17,6 +12,12 @@ using Microsoft.ML.Runtime.Internal.Utilities;
 using Microsoft.ML.Runtime.Model;
 using Microsoft.ML.StaticPipe;
 using Microsoft.ML.StaticPipe.Runtime;
+using Microsoft.ML.Transforms;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
 
 [assembly: LoadableClass(WordEmbeddingsTransform.Summary, typeof(IDataTransform), typeof(WordEmbeddingsTransform), typeof(WordEmbeddingsTransform.Arguments),
     typeof(SignatureDataTransform), WordEmbeddingsTransform.UserName, "WordEmbeddingsTransform", WordEmbeddingsTransform.ShortName, DocName = "transform/WordEmbeddingsTransform.md")]
@@ -30,7 +31,7 @@ using Microsoft.ML.StaticPipe.Runtime;
 [assembly: LoadableClass(typeof(IRowMapper), typeof(WordEmbeddingsTransform), null, typeof(SignatureLoadRowMapper),
     WordEmbeddingsTransform.UserName, WordEmbeddingsTransform.LoaderSignature)]
 
-namespace Microsoft.ML.Runtime.Data
+namespace Microsoft.ML.Transforms
 {
     /// <include file='doc.xml' path='doc/members/member[@name="WordEmbeddings"]/*' />
     public sealed class WordEmbeddingsTransform : OneToOneTransformerBase

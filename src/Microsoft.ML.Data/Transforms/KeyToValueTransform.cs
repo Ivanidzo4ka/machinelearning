@@ -2,11 +2,6 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
 using Microsoft.ML.Core.Data;
 using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.CommandLine;
@@ -18,7 +13,13 @@ using Microsoft.ML.Runtime.Model;
 using Microsoft.ML.Runtime.Model.Pfa;
 using Microsoft.ML.StaticPipe;
 using Microsoft.ML.StaticPipe.Runtime;
+using Microsoft.ML.Transforms;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text;
 
 [assembly: LoadableClass(typeof(IDataTransform), typeof(KeyToValueTransform), typeof(KeyToValueTransform.Arguments), typeof(SignatureDataTransform),
     KeyToValueTransform.UserName, KeyToValueTransform.LoaderSignature, "KeyToValue", "KeyToVal", "Unterm")]
@@ -32,7 +33,7 @@ using Newtonsoft.Json.Linq;
 [assembly: LoadableClass(typeof(IRowMapper), typeof(KeyToValueTransform), null, typeof(SignatureLoadRowMapper),
     KeyToValueTransform.UserName, KeyToValueTransform.LoaderSignature)]
 
-namespace Microsoft.ML.Runtime.Data
+namespace Microsoft.ML.Transforms
 {
     /// <summary>
     /// KeyToValueTransform utilizes KeyValues metadata to map key indices to the corresponding values in the KeyValues metadata.

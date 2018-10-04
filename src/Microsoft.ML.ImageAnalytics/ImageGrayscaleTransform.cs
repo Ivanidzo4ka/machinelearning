@@ -12,6 +12,7 @@ using Microsoft.ML.Runtime.Internal.Utilities;
 using Microsoft.ML.Runtime.Model;
 using Microsoft.ML.StaticPipe;
 using Microsoft.ML.StaticPipe.Runtime;
+using Microsoft.ML.Transforms.ImageAnalytics;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -31,7 +32,7 @@ using System.Text;
 [assembly: LoadableClass(typeof(IRowMapper), typeof(ImageGrayscaleTransform), null, typeof(SignatureLoadRowMapper),
     ImageGrayscaleTransform.UserName, ImageGrayscaleTransform.LoaderSignature)]
 
-namespace Microsoft.ML.Runtime.ImageAnalytics
+namespace Microsoft.ML.Transforms.ImageAnalytics
 {
     // REVIEW: Rewrite as LambdaTransform to simplify.
     // REVIEW: Should it be separate transform or part of ImageResizerTransform?

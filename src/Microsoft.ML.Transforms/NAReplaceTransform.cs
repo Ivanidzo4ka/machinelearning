@@ -14,6 +14,7 @@ using Microsoft.ML.Runtime.Model;
 using Microsoft.ML.Runtime.Model.Onnx;
 using Microsoft.ML.StaticPipe;
 using Microsoft.ML.StaticPipe.Runtime;
+using Microsoft.ML.Transforms;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -34,7 +35,7 @@ using System.Text;
 [assembly: LoadableClass(typeof(IRowMapper), typeof(NAReplaceTransform), null, typeof(SignatureLoadRowMapper),
    NAReplaceTransform.FriendlyName, NAReplaceTransform.LoadName)]
 
-namespace Microsoft.ML.Runtime.Data
+namespace Microsoft.ML.Transforms
 {
     // This transform can transform either scalars or vectors (both fixed and variable size),
     // creating output columns that are identical to the input columns except for replacing NA values

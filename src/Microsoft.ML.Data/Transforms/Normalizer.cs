@@ -8,6 +8,7 @@ using Microsoft.ML.Runtime.Data;
 using Microsoft.ML.Runtime.Model;
 using Microsoft.ML.Runtime.Model.Onnx;
 using Microsoft.ML.Runtime.Model.Pfa;
+using Microsoft.ML.Transforms;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
@@ -21,7 +22,7 @@ using System.Linq;
 [assembly: LoadableClass(typeof(IRowMapper), typeof(NormalizerTransformer), null, typeof(SignatureLoadRowMapper),
     "", NormalizerTransformer.LoaderSignature)]
 
-namespace Microsoft.ML.Runtime.Data
+namespace Microsoft.ML.Transforms
 {
     public sealed class Normalizer : IEstimator<NormalizerTransformer>
     {

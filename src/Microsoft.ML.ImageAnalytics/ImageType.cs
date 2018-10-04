@@ -2,12 +2,12 @@
 // The .NET Foundation licenses this file to you under the MIT license.
 // See the LICENSE file in the project root for more information.
 
-using System;
-using System.Drawing;
+using Microsoft.ML.Runtime;
 using Microsoft.ML.Runtime.Data;
 using Microsoft.ML.Runtime.Internal.Utilities;
+using System.Drawing;
 
-namespace Microsoft.ML.Runtime.ImageAnalytics
+namespace Microsoft.ML.Transforms.ImageAnalytics
 {
     public sealed class ImageType : StructuredType
     {
